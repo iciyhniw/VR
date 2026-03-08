@@ -14,7 +14,6 @@ renderer.xr.enabled = true; // АКТИВАЦІЯ WebXR
 document.body.appendChild(renderer.domElement);
 
 // 3. Додавання кнопки AR з підтримкою Hit Test
-// ВАЖЛИВО: Обов'язково запитуємо функцію 'hit-test' у браузера
 const arButtonOptions = { requiredFeatures: ['hit-test'] };
 document.body.appendChild(ARButton.createButton(renderer, arButtonOptions));
 
@@ -27,7 +26,6 @@ directionalLight.position.set(0, 2, 0);
 scene.add(directionalLight);
 
 // 5. Створення мітки (Reticle)
-// Це візуальний індикатор (кільце), який показуватиме, куди ми ставимо об'єкт
 const reticleGeometry = new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2);
 const reticleMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 const reticle = new THREE.Mesh(reticleGeometry, reticleMaterial);
@@ -58,7 +56,6 @@ function onSelect() {
         
         // Розміщуємо кубик точно там, де зараз знаходиться мітка
         box.position.setFromMatrixPosition(reticle.matrix);
-        // Можна також скопіювати поворот поверхні (опціонально)
         box.quaternion.setFromRotationMatrix(reticle.matrix);
         
         scene.add(box);

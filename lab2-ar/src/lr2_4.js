@@ -12,7 +12,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true; // АКТИВАЦІЯ WebXR
-renderer.outputColorSpace = THREE.SRGBColorSpace; // Критично важливо для правильного відображення текстур
+renderer.outputColorSpace = THREE.SRGBColorSpace; 
 document.body.appendChild(renderer.domElement);
 
 // 3. Додавання кнопки AR з підтримкою Hit Test
@@ -20,12 +20,10 @@ const arButtonOptions = { requiredFeatures: ['hit-test'] };
 document.body.appendChild(ARButton.createButton(renderer, arButtonOptions));
 
 // 4. Додавання освітлення
-// HemisphereLight для м'якого загального заповнення
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
 hemiLight.position.set(0, 2, 0);
 scene.add(hemiLight);
 
-// DirectionalLight для створення відблисків на матеріалах моделі
 const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
 directionalLight.position.set(1, 2, 1);
 scene.add(directionalLight);
@@ -42,7 +40,7 @@ scene.add(reticle);
 let modelTemplate = null;
 const loader = new GLTFLoader();
 
-// Шлях до нової моделі згідно твоєї структури папок
+
 const modelPath = './models/magic_ring/scene.gltf';
 
 loader.load(
@@ -50,7 +48,6 @@ loader.load(
     (gltf) => {
         modelTemplate = gltf.scene;
 
-        // Налаштування матеріалів (вмикаємо тіні)
         modelTemplate.traverse((node) => {
             if (node.isMesh) {
                 node.castShadow = true;
@@ -58,11 +55,10 @@ loader.load(
             }
         });
 
-        // Масштабуємо модель. Оскільки це нова модель, можливо, цей параметр 
-        // доведеться змінити (наприклад, на 0.1 або 0.01), якщо вона виявиться завеликою.
-        modelTemplate.scale.set(0.3, 0.3, 0.3); 
         
-        console.log("Модель успішно завантажена і готова до розміщення!");
+        modelTemplate.scale.set(0.2, 0.2, 0.2); 
+        
+        console.log("Модель fireball успішно завантажена і готова до розміщення!");
     },
     (xhr) => {
         console.log(`Завантаження моделі: ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
@@ -71,6 +67,9 @@ loader.load(
         console.error('Помилка завантаження моделі:', error);
     }
 );
+
+// Масив для зберігання всіх розміщених на сцені моделей
+const activeModels = [];
 
 // 7. Обробка тапу по екрану (додавання моделі на сцену)
 const controller = renderer.xr.getController(0);
@@ -86,7 +85,16 @@ function onSelect() {
         newModel.position.setFromMatrixPosition(reticle.matrix);
         newModel.quaternion.setFromRotationMatrix(reticle.matrix);
         
+        //Зберігаємо початкову висоту моделі (Y), щоб відштовхуватись від неї при анімації
+        newModel.userData.baseY = newModel.position.y;
+        
+        //Генеруємо випадковий зсув у часі, щоб кулі рухались не синхронно
+        newModel.userData.timeOffset = Math.random() * Math.PI * 2;
+        
         scene.add(newModel);
+        
+        // Додаємо модель до масиву активних об'єктів
+        activeModels.push(newModel);
     }
 }
 
@@ -94,7 +102,7 @@ function onSelect() {
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 
-// 9. Цикл рендерингу та логіка Hit Test
+// 9. Цикл рендерингу та логіка Hit Test + Анімація
 function render(timestamp, frame) {
     if (frame) {
         const referenceSpace = renderer.xr.getReferenceSpace();
@@ -129,6 +137,19 @@ function render(timestamp, frame) {
             }
         }
     }
+
+    // --- АНІМАЦІЯ ВОГНЯНИХ КУЛЬ ---
+    // timestamp - це час у мілісекундах. Множимо його, щоб сповільнити рух.
+    const time = timestamp * 0.002; 
+    
+    activeModels.forEach(model => {
+        // 1. Обертання навколо своєї осі Y (швидкість обертання)
+        model.rotation.y += 0.02;
+        
+        // 2. Плавний рух вгору-вниз (використовуємо Math.sin)
+        // Амплітуда 0.05 означає, що куля буде відхилятися на 5 см вгору і 5 см вниз від базової точки
+        model.position.y = model.userData.baseY + Math.sin(time + model.userData.timeOffset) * 0.05;
+    });
 
     renderer.render(scene, camera);
 }
