@@ -43,7 +43,6 @@ loader.load(
     (gltf) => {
         myModel = gltf.scene;
 
-        // Використання model.traverse() для налаштування матеріалів кожного елемента моделі
         myModel.traverse((node) => {
             if (node.isMesh) {
                 node.castShadow = true;
